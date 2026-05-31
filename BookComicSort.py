@@ -6,18 +6,18 @@ import os
 import shutil
 from PIL import Image
 
-# --- MODERNES DESIGN SETUP ---
+# DESIGN
 ctk.set_appearance_mode("dark")  
 ctk.set_default_color_theme("blue")  
 
-# --- PFADE ---
+# PFADE
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "sammlung.db")
 IMAGE_DIR = os.path.join(BASE_DIR, "bilder")
 if not os.path.exists(IMAGE_DIR):
     os.makedirs(IMAGE_DIR)
 
-# --- DETAIL-FENSTER MIT BILD ---
+# FENSTER MIT BILD
 class DetailWindow(ctk.CTkToplevel):
     def __init__(self, parent, data):
         super().__init__(parent)
@@ -31,7 +31,7 @@ class DetailWindow(ctk.CTkToplevel):
         
         fields_map = [
             ("Datenbank-ID", "id"), ("Name", "name"), ("Nummer", "nummer"), 
-            ("Marke/Serie", "markke"), ("Genre", "genre"), ("Verlag", "verlag"), 
+            ("Marke/Serie", "marke"), ("Genre", "genre"), ("Verlag", "verlag"), 
             ("Jahr", "jahr"), ("Zustand", "zustand"), ("Erstausgabe", "erstausgabe"), 
             ("Lagerort", "ort"), ("Anzahl", "anzahl"), ("Preis (€)", "preis")
         ]
@@ -41,8 +41,7 @@ class DetailWindow(ctk.CTkToplevel):
         
         for i, (label_text, db_field) in enumerate(fields_map):
             ctk.CTkLabel(info_frame, text=f"{label_text}:", font=("Arial", 12, "bold")).grid(row=i, column=0, sticky="w", padx=5, pady=2)
-            actual_key = "marke" if db_field == "markke" else db_field
-            val = data[actual_key]
+            val = data[db_field]  # <-- FIX: Direkt auf das korrekte Feld zugreifen
             if db_field == "preis" and val is not None:
                 try: val = f"{float(val):.2f} €"
                 except ValueError: pass
@@ -62,7 +61,7 @@ class DetailWindow(ctk.CTkToplevel):
             
         ctk.CTkButton(self, text="Schließen", command=self.destroy).pack(pady=15)
 
-# --- BEARBEITEN-FENSTER ---
+# FENSTER EINSTELLEN
 class EditWindow(ctk.CTkToplevel):
     def __init__(self, parent, data, callback):
         super().__init__(parent)
@@ -81,7 +80,7 @@ class EditWindow(ctk.CTkToplevel):
         self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
         self.field_config = [
-            ("Name", "name"), ("Nummer", "nummer"), ("Marke / Serie", "markke"), 
+            ("Name", "name"), ("Nummer", "nummer"), ("Marke / Serie", "marke"), 
             ("Genre", "genre"), ("Verlag", "verlag"), ("Jahr", "jahr"), 
             ("Zustand", "zustand"), ("Erstausgabe (Ja/Nein)", "erstausgabe"), 
             ("Lagerort", "ort"), ("Anzahl", "anzahl"), ("Preis (€)", "preis")
@@ -91,8 +90,7 @@ class EditWindow(ctk.CTkToplevel):
         for label_text, db_field in self.field_config:
             ctk.CTkLabel(self.scroll_frame, text=label_text, font=("Arial", 12, "bold")).pack(anchor="w", padx=10, pady=(5, 0))
             entry = ctk.CTkEntry(self.scroll_frame, placeholder_text=label_text)
-            actual_field = "marke" if db_field == "markke" else db_field
-            val = data[actual_field]
+            val = data[db_field]  # <-- FIX: Direkt auf das korrekte Feld zugreifen
             entry.insert(0, str(val) if val is not None else "")
             entry.pack(fill="x", padx=10, pady=2)
             self.fields[db_field] = entry
@@ -135,7 +133,7 @@ class EditWindow(ctk.CTkToplevel):
             except ValueError: raise ValueError(f"Ungültiger Preis '{preis_raw}'.")
 
             data = (
-                name, self.fields["nummer"].get(), self.fields["markke"].get(),
+                name, self.fields["nummer"].get(), self.fields["marke"].get(),
                 self.fields["genre"].get(), self.fields["verlag"].get(), self.fields["jahr"].get(), 
                 self.fields["zustand"].get(), self.fields["erstausgabe"].get(), 
                 self.fields["ort"].get(), anzahl, preis, self.current_img_path, 
@@ -155,7 +153,7 @@ class EditWindow(ctk.CTkToplevel):
         except Exception as e:
             messagebox.showerror("Fehler beim Bearbeiten", f"Der Eintrag konnte nicht geändert werden.\n\nGrund:\n{str(e)}")
 
-# --- DATENBANK ---
+# DATENBANK
 class Database:
     def __init__(self):
         self.conn = sqlite3.connect(DB_PATH)
@@ -181,7 +179,6 @@ class Database:
         temp_cursor = temp_conn.cursor()
         temp_cursor.execute("PRAGMA table_info(sammlung)")
         
-        # --- FIX: row[1] holt exakt den Text-Namen aus den SQLite-Metadaten-Tupeln heraus ---
         columns = [row[1].lower() for row in temp_cursor.fetchall()]
         temp_conn.close()
 
@@ -203,7 +200,7 @@ class Database:
             self.cursor.execute(query, (wunschliste, f"{search_term}%"))
         return self.cursor.fetchall()
 
-# --- HAUPT-APP ---
+# APP
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -240,7 +237,7 @@ class App(ctk.CTk):
         self.fields = {}
         
         self.field_inputs = [
-            ("Name", "name"), ("Nummer", "nummer"), ("Marke / Serie", "markke"), 
+            ("Name", "name"), ("Nummer", "nummer"), ("Marke / Serie", "marke"), 
             ("Genre", "genre"), ("Verlag", "verlag"), ("Jahr", "jahr"), 
             ("Zustand", "zustand"), ("Erstausgabe (Ja/Nein)", "erstausgabe"), 
             ("Lagerort", "ort"), ("Anzahl", "anzahl"), ("Preis (€)", "preis")
@@ -304,7 +301,6 @@ class App(ctk.CTk):
     def open_details(self, tree):
         selected = tree.selection()
         if selected:
-            # --- FIX: [0] extrahiert die ID als Skalar aus der ausgewählten Zeile ---
             item_id = tree.item(selected)['values'][0]
             self.db.cursor.execute("SELECT * FROM sammlung WHERE id = ?", (item_id,))
             data = self.db.cursor.fetchone()
@@ -328,7 +324,7 @@ class App(ctk.CTk):
             except ValueError: raise ValueError(f"Ungültiger Preis '{preis_raw}'.")
 
             data = (
-                name, self.fields["nummer"].get(), self.fields["markke"].get(),
+                name, self.fields["nummer"].get(), self.fields["marke"].get(),
                 self.fields["genre"].get(), self.fields["verlag"].get(), self.fields["jahr"].get(), 
                 self.fields["zustand"].get(), self.fields["erstausgabe"].get(), 
                 self.fields["ort"].get(), anzahl, preis, self.current_img_path, 
@@ -361,7 +357,6 @@ class App(ctk.CTk):
     def open_edit_window(self, tree):
         selected = tree.selection()
         if selected:
-            # --- FIX: [0] extrahiert die ID als Skalar aus der ausgewählten Zeile ---
             item_id = tree.item(selected)['values'][0]
             self.db.cursor.execute("SELECT * FROM sammlung WHERE id = ?", (item_id,))
             data = self.db.cursor.fetchone()
@@ -371,7 +366,6 @@ class App(ctk.CTk):
     def confirm_delete(self, tree):
         selected = tree.selection()
         if selected:
-            # --- FIX: [0] extrahiert die ID als Skalar aus der ausgewählten Zeile ---
             item_id = tree.item(selected)['values'][0]
             if messagebox.askyesno("Löschen?", "Diesen Eintrag wirklich entfernen?"):
                 self.db.cursor.execute("DELETE FROM sammlung WHERE id = ?", (item_id,))
@@ -418,20 +412,20 @@ class App(ctk.CTk):
     <meta charset='utf-8'>
     <title>Übersicht</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #ffffff; color: #333333; margin: 40px; }
+        body { font-family: 'Nirmala Text', Lora, 'Cascadia Mono SemiLight'; background-color: #F7F0F0; color: #663357; margin: 40px; }
         h1 { font-size: 26px; font-weight: 600; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; margin-bottom: 20px; color: #111111; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background-color: #f7f7f7; color: #555555; text-align: left; padding: 12px; font-size: 14px; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
+        th { background-color: #f7f2f7; color: #555255; text-align: left; padding: 12px; font-size: 14px; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
         td { padding: 12px; font-size: 14px; border-bottom: 1px solid #eeeeee; color: #444444; }
         tr:nth-child(even) { background-color: #fafafa; }
         tr:hover { background-color: #f1f1f1; }
         .status-besitz { color: #2e7d32; font-weight: bold; }
         .status-wunsch { color: #c62828; font-weight: bold; }
         .btn-group { margin-bottom: 25px; background: #fafafa; padding: 15px; border-radius: 6px; border: 1px solid #eaeaea; }
-        .btn-action { background-color: #212121; color: white; border: none; padding: 10px 20px; font-size: 14px; border-radius: 4px; cursor: pointer; transition: background 0.2s; font-weight: 600; }
-        .btn-action:hover { background-color: #424242; }
+        .btn-action { background-color: #212121; color: white; border: none; padding: 11px 22px; font-size: 14px; border-radius: 4px; cursor: pointer; transition: background 0.2s; font-weight: 600; }
+        .btn-action:hover { background-color: #454282; }
         @media print {
-            body { margin: 20px; color: #000000; }
+            body { margin: 20px; color: #010200; }
             .btn-group { display: none !important; }
             tr { page-break-inside: avoid; }
         }
@@ -479,3 +473,5 @@ class App(ctk.CTk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+
