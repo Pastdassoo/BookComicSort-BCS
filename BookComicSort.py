@@ -5,7 +5,8 @@ import sqlite3
 import os
 import shutil
 from PIL import Image
-
+# Imports  ^
+#          |
 # DESIGN
 ctk.set_appearance_mode("dark")  
 ctk.set_default_color_theme("blue")  
@@ -107,7 +108,7 @@ class EditWindow(ctk.CTkToplevel):
         ctk.CTkButton(self, text="Abbrechen", command=self.destroy).pack(pady=5)
 
     def select_image(self):
-        path = filedialog.askopenfilename(filetypes=[("Bilder", "*.jpg *.png *.jpeg")])
+        path = filedialog.askopenfilename(filetypes=[("Bilder", "*.jpg *.png *.jpeg *.heic")]) # Bild Dateien Arten / Types of Picture Files
         if path:
             filename = os.path.basename(path)
             dest = os.path.join(IMAGE_DIR, filename)
@@ -278,7 +279,7 @@ class App(ctk.CTk):
         frame = ctk.CTkFrame(parent)
         frame.pack(fill="both", expand=True, padx=5, pady=5)
         
-        columns = ("ID", "Name", "Nummer", "Genre", "Verlag", "Preis")
+        columns = ("ID", "Name", "Nummer/Number", "Genre", "Verlag/publisher", "Preis/Cost's")
         tree = ttk.Treeview(frame, columns=columns, show='headings')
         
         widths = {"ID": 60, "Name": 250, "Nummer": 80, "Genre": 150, "Verlag": 150, "Preis": 100}
@@ -362,7 +363,7 @@ class App(ctk.CTk):
             data = self.db.cursor.fetchone()
             if data:
                 EditWindow(self, data, self.refresh_data)
-
+# Löschen/delete
     def confirm_delete(self, tree):
         selected = tree.selection()
         if selected:
@@ -401,7 +402,7 @@ class App(ctk.CTk):
                 shutil.copy(path, dest)
             self.current_img_path = os.path.relpath(dest, BASE_DIR)
             self.btn_img.configure(text="Bild auswählen")
-
+# HTML Dokumente erstellen / HTML File
     def export_html(self):
         self.db.cursor.execute("SELECT name, nummer, genre, verlag, preis, wunschliste FROM sammlung ORDER BY wunschliste ASC, name ASC")
         data = self.db.cursor.fetchall()
@@ -411,19 +412,26 @@ class App(ctk.CTk):
 <head>
     <meta charset='utf-8'>
     <title>Übersicht</title>
-    <style>
+    <style> 
         body { font-family: 'Nirmala Text', Lora, 'Cascadia Mono SemiLight'; background-color: #F7F0F0; color: #663357; margin: 40px; }
+        
         h1 { font-size: 26px; font-weight: 600; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; margin-bottom: 20px; color: #111111; }
+       
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+       
         th { background-color: #f7f2f7; color: #555255; text-align: left; padding: 12px; font-size: 14px; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
+        
         td { padding: 12px; font-size: 14px; border-bottom: 1px solid #eeeeee; color: #444444; }
+      
         tr:nth-child(even) { background-color: #fafafa; }
+      
         tr:hover { background-color: #f1f1f1; }
         .status-besitz { color: #2e7d32; font-weight: bold; }
         .status-wunsch { color: #c62828; font-weight: bold; }
         .btn-group { margin-bottom: 25px; background: #fafafa; padding: 15px; border-radius: 6px; border: 1px solid #eaeaea; }
         .btn-action { background-color: #212121; color: white; border: none; padding: 11px 22px; font-size: 14px; border-radius: 4px; cursor: pointer; transition: background 0.2s; font-weight: 600; }
         .btn-action:hover { background-color: #454282; }
+       
         @media print {
             body { margin: 20px; color: #010200; }
             .btn-group { display: none !important; }
